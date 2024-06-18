@@ -1,0 +1,59 @@
+from iqoptionapi.stable_api import IQ_Option
+import time
+
+# Credenciais de login da IQ Option
+email = "seu_email"
+password = "sua_senha"
+
+# Conectar à IQ Option
+iq = IQ_Option(email, password)
+check, reason = iq.connect()
+
+if check:
+    print("Conectado com sucesso!")
+else:
+    print(f"Erro de conexão: {reason}")
+    exit()
+
+# Configurações de negociação
+ACTIVO = "EURUSD"
+DURACAO = 1  # Duração da opção em minutos
+VALOR = 1  # Valor da negociação em USD
+
+# Função para obter o preço atual do ativo
+def get_current_price():
+    candles = iq.get_candles(ACTIVO, 60, 3, time.time())
+    return candles[-1]['close']
+
+# Função para prever a direção do preço
+def predict_direction():
+    candles = iq.get_candles(ACTIVO, 60, 3, time.time())
+    if candles[-1]['close'] > candles[-2]['close']:
+        return "call"  # Prever alta
+    else:
+        return "put"  # Prever baixa
+
+# Função para realizar a negociação
+def place_trade(direction):
+    success, order_id = iq.buy(VALOR, ACTIVO, direction, DURACAO)
+    return success, order_id
+
+# Obter preço atual e prever direção
+current_price = get_current_price()
+direction = predict_direction()
+print(f"Preço atual: {current_price}, Direção prevista: {direction}")
+
+# Realizar negociação
+success, order_id = place_trade(direction)
+if success:
+    print(f"Negociação realizada com sucesso, ID: {order_id}")
+else:
+    print("Falha na realização da negociação")
+
+# Monitorar o resultado da negociação
+time.sleep(DURACAO * 60)
+result = iq.check_win_v3(order_id)
+if result > 0:
+    print(f"Você ganhou: ${result}")
+else:
+    print("Você perdeu.")
